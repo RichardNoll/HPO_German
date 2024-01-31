@@ -12,3 +12,4 @@ The English HPO is freely available at https://hpo.jax.org/app/
 Further translations can be found here: 
 
 Gargano MA, Matentzoglu N, Coleman B, et al. The Human Phenotype Ontology in 2024: phenotypes around the world. Nucleic Acids Res. 2024;52(D1):D1333-D1346. doi:10.1093/nar/gkad1005
+https://pubmed.ncbi.nlm.nih.gov/37953324/
