@@ -42,26 +42,57 @@ def extract_info(document, code, include_def):
         return combined_info
     return None
 
+
+    
+def find_code_by_name_or_synonym(document, search_term):
+    """ Findet den Code basierend auf einem gegebenen Namen oder Synonym. """
+    pattern = fr"\[Begriff\]\nid: (HP:\d{{7}})\n(.*?)(?=\[Begriff\]|\Z)"
+    for match in re.finditer(pattern, document, re.DOTALL | re.IGNORECASE):
+        code, begriff_abschnitt = match.groups()
+        name_match = re.search(r"name: ([^\n]+)\n", begriff_abschnitt, re.IGNORECASE)
+        synonyms = re.findall(r"synonym: \"([^\"]+)\"", begriff_abschnitt, re.IGNORECASE)
+
+        if name_match and search_term.lower() == name_match.group(1).lower():
+            return code
+        if any(synonym.lower() == search_term.lower() for synonym in synonyms):
+            return code
+    return None
+
 # Lesen des Textdokuments (ohne vollständigen Pfad)
 document_path = "hp full de.txt"
 with open(document_path, 'r', encoding='utf-8') as file:
     document = file.read()
 
-# Eingabeaufforderungen für den Nutzer
-input_codes = input("Please enter the codes in the format 'HP:0000013' (separated by commas): ")
-codes_list = input_codes.split(',')
-include_def_input = input("Do you want to include definitions? (yes/no): ")
-include_def = include_def_input.strip().lower() == 'yes'
+# Eingabeaufforderung für den Nutzer
+search_type = input("Would you like to search for a code or  a name ? (code/name): ").lower()
 
-# Extrahieren der Informationen und Ausgabe in der Konsole
-for code in codes_list:
-    code = code.strip()  # Entfernen von Leerzeichen um den Code
-    if not is_valid_code(code):
-        print(f"Error: '{code}' is not a valid code. Correct format: 'HP:0000013'")
-        continue
-    combined_info = extract_info(document, code, include_def)
-    if combined_info:
-        print(f"Code: {code}, Name and Synonyms: {combined_info}")
+
+if search_type == 'code':
+    # Eingabeaufforderungen für den Nutzer
+    input_codes = input("Please enter the codes in the format 'HP:0000013' (separated by commas): ")
+    codes_list = input_codes.split(',')
+    include_def_input = input("Do you want to include definitions? (yes/no): ")
+    include_def = include_def_input.strip().lower() == 'yes'
+
+    # Extrahieren der Informationen und Ausgabe in der Konsole
+    for code in codes_list:
+        code = code.strip()  # Entfernen von Leerzeichen um den Code
+        if not is_valid_code(code):
+            print(f"Error: '{code}' is not a valid code. Correct format: 'HP:0000013'")
+            continue
+        combined_info = extract_info(document, code, include_def)
+        if combined_info:
+            print(f"Code: {code}, Name and Synonyms: {combined_info}")
+        else:
+            print(f"No information found for Code: {code}")
+# Hier den Code für die Code-Suche einfügen
+elif search_type in ['name']:
+    search_term = input("Please enter a German name or synonym: ")
+
+    code = find_code_by_name_or_synonym(document, search_term)
+    if code:
+        print(f"Zu '{search_term}' found Code: {code}")
     else:
-        print(f"No information found for Code: {code}")
-
+        print(f"'{search_term}' was not found.")
+        
+        
