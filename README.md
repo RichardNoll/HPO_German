@@ -35,6 +35,7 @@ If no information is found for a particular code or term, the program will infor
 
 Remember, this program is designed to work with a specific document structure used for HPO codes, names, synonyms, and definitions. Ensure that the "hp full de.txt" file is in the correct format and located in the same directory as your script for the program to function correctly.
 
+https://colab.research.google.com/github/RichardNoll/HPO_German/blob/main/HPO_German.ipynb
 ---
 
 This is explicitly not an official translation of the HPO. The translation is for research purposes and the further development of the HPO in various languages. 
