@@ -11,14 +11,14 @@ def is_valid_code(code):
     """ Überprüfen, ob der Code dem Format 'HP:0000013' entspricht """
     return re.match(r"HP:\d{7}", code) is not None
 
-def extract_info(document, code):
+def extract_info(document, code, include_def):
     pattern = fr"\[Begriff\]\nid: {code}\n(.*?)\n(?=\[Begriff\]|\Z)"
     match = re.search(pattern, document, re.DOTALL)
     if match:
         begriff_abschnitt = match.group(1)
 
         # Extrahieren des Namens
-        name_match = re.search(r"name: ([^\n]+)\n", begriff_abschnitt)
+        name_match = re.search(r"name: ([^\n]+)\n", begriff_abschnitt, re.IGNORECASE)
         name = name_match.group(1) if name_match else None
 
         # Extrahieren und Formatieren der Synonyme
@@ -26,13 +26,19 @@ def extract_info(document, code):
         formatted_info = set([name])  # Beginnen mit einem Set, das den Namen enthält
 
         for synonym in synonyms:
-            synonym_formatted = synonym.replace(',', '')  # Entfernen von Kommas
-            formatted_info.add(synonym_formatted)  # Hinzufügen zum Set, um Duplikate zu vermeiden
+            formatted_info.add(synonym)  # Hinzufügen zum Set, um Duplikate zu vermeiden
 
         # Entfernen von None und Zusammenfügen der Informationen
         if None in formatted_info:
             formatted_info.remove(None)
         combined_info = ', '.join(formatted_info)
+
+        # Extrahieren der Definition, falls gewünscht
+        if include_def:
+            def_match = re.search(r"def: \"([^\"]+)\"", begriff_abschnitt)
+            definition = def_match.group(1) if def_match else "No definition found"
+            combined_info += f" - Definition: {definition}"
+
         return combined_info
     return None
 
@@ -41,9 +47,11 @@ document_path = "hp full de.txt"
 with open(document_path, 'r', encoding='utf-8') as file:
     document = file.read()
 
-# Eingabeaufforderung für den Nutzer
-input_codes = input("Please enter the codes in the format 'HP:0000013' (separated by a comma): ")
+# Eingabeaufforderungen für den Nutzer
+input_codes = input("Please enter the codes in the format 'HP:0000013' (separated by commas): ")
 codes_list = input_codes.split(',')
+include_def_input = input("Do you want to include definitions? (yes/no): ")
+include_def = include_def_input.strip().lower() == 'yes'
 
 # Extrahieren der Informationen und Ausgabe in der Konsole
 for code in codes_list:
@@ -51,9 +59,9 @@ for code in codes_list:
     if not is_valid_code(code):
         print(f"Error: '{code}' is not a valid code. Correct format: 'HP:0000013'")
         continue
-    combined_info = extract_info(document, code)
+    combined_info = extract_info(document, code, include_def)
     if combined_info:
-        print(f"Code: {code}, Name und Synonyms: {combined_info}")
+        print(f"Code: {code}, Name and Synonyms: {combined_info}")
     else:
         print(f"No information found for Code: {code}")
 
