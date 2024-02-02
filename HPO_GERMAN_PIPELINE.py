@@ -7,6 +7,25 @@ Created on Tue Jan 30 10:14:15 2024
 
 import re
 
+def find_similar_terms(document, search_term, start=0, end=10):
+    pattern = r"\[Begriff\]\nid: (HP:\d{7})\n(.*?)(?=\[Begriff\]|\Z)"
+    similar_terms = []
+    for match in re.finditer(pattern, document, re.DOTALL | re.IGNORECASE):
+        code, begriff_abschnitt = match.groups()
+        name_match = re.search(r"name: ([^\n]+)\n", begriff_abschnitt, re.IGNORECASE)
+        synonyms = re.findall(r"synonym: \"([^\"]+)\"", begriff_abschnitt, re.IGNORECASE)
+
+        if name_match and search_term.lower() in name_match.group(1).lower():
+            similar_terms.append((name_match.group(1), code))
+        for synonym in synonyms:
+            if search_term.lower() in synonym.lower():
+                similar_terms.append((synonym, code))
+
+    # Sortieren und Filtern der Ergebnisse für Paginierung
+    similar_terms = sorted(set(similar_terms), key=lambda x: x[0])
+    
+    return similar_terms[start:end], len(similar_terms)
+
 def is_valid_code(code):
     """ Überprüfen, ob der Code dem Format 'HP:0000013' entspricht """
     return re.match(r"HP:\d{7}", code) is not None
@@ -46,7 +65,7 @@ def extract_info(document, code, include_def):
     
 def find_code_by_name_or_synonym(document, search_term):
     """ Findet den Code basierend auf einem gegebenen Namen oder Synonym. """
-    pattern = fr"\[Begriff\]\nid: (HP:\d{{7}})\n(.*?)(?=\[Begriff\]|\Z)"
+    pattern = r"\[Begriff\]\nid: (HP:\d{{7}})\n(.*?)(?=\[Begriff\]|\Z)"
     for match in re.finditer(pattern, document, re.DOTALL | re.IGNORECASE):
         code, begriff_abschnitt = match.groups()
         name_match = re.search(r"name: ([^\n]+)\n", begriff_abschnitt, re.IGNORECASE)
@@ -64,7 +83,13 @@ with open(document_path, 'r', encoding='utf-8') as file:
     document = file.read()
 
 # Eingabeaufforderung für den Nutzer
-search_type = input("Would you like to search for a code or  a name ? (code/name): ").lower()
+while True:
+    search_type = input("Would you like to search for a code or a name? (code/name): ").lower()
+    if search_type in ['code', 'name']:
+        break
+    else:
+        print("Invalid input. Please enter 'code' or 'name'.")
+
 
 
 if search_type == 'code':
@@ -86,13 +111,67 @@ if search_type == 'code':
         else:
             print(f"No information found for Code: {code}")
 # Hier den Code für die Code-Suche einfügen
-elif search_type in ['name']:
+if search_type == 'name':
     search_term = input("Please enter a German name or synonym: ")
+    start = 0
+    end = 10
+    total_rounds = 2  # Maximale Anzahl an zusätzlichen Runden mit Ergebnissen
+    current_round = 0
+    displayed_terms_count = 0  # Zähler für die Anzahl der angezeigten Terme
 
-    code = find_code_by_name_or_synonym(document, search_term)
-    if code:
-        print(f"Zu '{search_term}' found Code: {code}")
+    all_similar_terms = []  # Speichern aller gefundenen ähnlichen Terme
+
+    while True:
+        similar_terms, total = find_similar_terms(document, search_term, start, end)
+        all_similar_terms.extend(similar_terms)  # Hinzufügen der gefundenen Terme zur Gesamtliste
+
+        if similar_terms:
+            print("Similar terms found:")
+            for i, (term, code) in enumerate(similar_terms, displayed_terms_count + 1):
+                print(f"{i}. {term} (Code: {code})")
+            displayed_terms_count += len(similar_terms)  # Aktualisieren des Zählers für angezeigte Terme
+            
+            if end >= total or current_round >= total_rounds:
+                print("No more terms available.")
+                break
+            else:
+                choice = input("Would you like to see more terms? (yes/no): ").lower()
+                if choice == 'yes':
+                    start += 10
+                    end += 10
+                    current_round += 1
+                else:
+                    break
+        else:
+            print(f"'{search_term}' was not found.")
+            break
+
+    # Auswahl der Terme nach Abschluss der Suche
+    if all_similar_terms:
+        while True:
+            final_choice_input = input("Enter the number of the term you are interested in: ")
+            try:
+                final_choice_index = int(final_choice_input) - 1
+                if 0 <= final_choice_index < len(all_similar_terms):
+                    final_choice = all_similar_terms[final_choice_index]
+                    print(f"You selected: {final_choice[0]} with Code: {final_choice[1]}")
+                    break  # Gültige Auswahl, Schleife verlassen
+                else:
+                    print("Invalid selection. Please enter a number within the list range.")
+            except ValueError:
+                print("Invalid input. Please enter a valid number.")
     else:
-        print(f"'{search_term}' was not found.")
+        print("No terms to select.")
+
+
+
+
         
         
+        
+        
+        
+        
+
+
+
